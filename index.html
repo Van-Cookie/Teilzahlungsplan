@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teilzahlungsplan</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f11;
+    --surface: #17171a;
+    --border: #2a2a30;
+    --text: #e8e8ec;
+    --muted: #6b6b78;
+    --aps3: #f0c060;
+    --aic50: #5ec26a;
+    --ub55: #9b9ba8;
+    --aicher: #e07060;
+    --accent: #f0c060;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 48px 40px;
+  }
+
+  header {
+    margin-bottom: 56px;
+  }
+
+  header h1 {
+    font-size: clamp(22px, 4vw, 36px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  header p {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .legend {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 48px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* ── TIMELINE ── */
+  .timeline-wrap {
+    position: relative;
+    padding-bottom: 48px;
+  }
+
+  .timeline-axis {
+    position: relative;
+    height: 2px;
+    background: var(--border);
+    margin: 140px 0 120px;
+  }
+
+  .axis-line {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, transparent, var(--border) 5%, var(--border) 95%, transparent);
+  }
+
+  .payment {
+    position: absolute;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: default;
+  }
+
+  .payment.above {
+    bottom: 2px; /* sits on top of axis */
+    flex-direction: column-reverse;
+    align-items: center;
+  }
+
+  .payment.below {
+    top: 2px;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .payment-circle {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    color: #0f0f11;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .payment-circle:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
+  }
+
+  .payment-circle .amount-label {
+    font-size: 10px;
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.2;
+    pointer-events: none;
+  }
+
+  .payment-stem {
+    width: 1px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  .payment-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .payment-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .payment-project {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* ── CUMULATIVE BAR ── */
+  .cumulative-section {
+    margin-top: 64px;
+    border-top: 1px solid var(--border);
+    padding-top: 40px;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .cum-chart {
+    position: relative;
+    height: 80px;
+  }
+
+  .cum-bar-bg {
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    left: 0; right: 0;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+  }
+
+  .cum-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--aps3), var(--aic50));
+    width: 0%;
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .cum-marker {
+    position: absolute;
+    top: 50%; transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .cum-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    position: relative;
+    z-index: 2;
+  }
+
+  .cum-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    white-space: nowrap;
+    margin-top: 14px;
+  }
+
+  /* ── SUMMARY CARDS ── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 56px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .card.aps3::before { background: var(--aps3); }
+  .card.aic50::before { background: var(--aic50); }
+  .card.ub55::before { background: var(--ub55); }
+  .card.aicher::before { background: var(--aicher); }
+  .card.total::before { background: linear-gradient(90deg, var(--aps3), var(--aic50)); }
+
+  .card-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .card-amount {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .card-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Teilzahlungsplan</h1>
+  <p>Lineare Kalenderdarstellung · Fälligkeiten Feb – Mai 2026</p>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--aps3)"></div>APS3</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--aic50)"></div>AIC50</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--ub55)"></div>UB55</div>
+  <div class="legend-item" style="margin-left:auto">
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">Kreisgrößen = Betrag (skaliert)</span>
+  </div>
+</div>
+
+<div class="timeline-wrap">
+  <div class="timeline-axis" id="axis">
+    <div class="axis-line"></div>
+  </div>
+</div>
+
+<div class="cumulative-section">
+  <div class="section-label">Kumulierter Zufluss</div>
+  <div class="cum-chart" id="cumChart">
+    <div class="cum-bar-bg"><div class="cum-bar-fill" id="cumFill"></div></div>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card aps3">
+    <div class="card-label">APS3</div>
+    <div class="card-amount" style="color:var(--aps3)">35.779 €</div>
+    <div class="card-sub">3 Zahlungen · Mär – Apr</div>
+  </div>
+  <div class="card aic50">
+    <div class="card-label">AIC50 · Aicher Str.</div>
+    <div class="card-amount" style="color:var(--aic50)">77.209 €</div>
+    <div class="card-sub">4 Zahlungen · Feb – Mai</div>
+  </div>
+  <div class="card ub55">
+    <div class="card-label">UB55</div>
+    <div class="card-amount" style="color:var(--ub55)">22.057 €</div>
+    <div class="card-sub">1 Zahlung · Mär (Teilbetrag)</div>
+  </div>
+  <div class="card total">
+    <div class="card-label">Gesamt ausstehend</div>
+    <div class="card-amount">135.046 €</div>
+    <div class="card-sub">8 Termine · Feb – Mai 2026</div>
+  </div>
+</div>
+
+<script>
+const payments = [
+  { date: new Date('2026-02-26'), amount: 25749.95, project: 'AIC50', color: '#5ec26a', pos: 'below' },
+  { date: new Date('2026-03-12'), amount: 10000,    project: 'APS3',  color: '#f0c060', pos: 'above' },
+  { date: new Date('2026-03-20'), amount: 22057.25, project: 'UB55',  color: '#9b9ba8', pos: 'above' },
+  { date: new Date('2026-03-26'), amount: 10000,    project: 'APS3',  color: '#f0c060', pos: 'below' },
+  { date: new Date('2026-04-09'), amount: 15779.52, project: 'APS3',  color: '#f0c060', pos: 'above' },
+  { date: new Date('2026-05-07'), amount: 15000,    project: 'AIC50', color: '#5ec26a', pos: 'below' },
+  { date: new Date('2026-05-07'), amount: 15000,    project: 'AIC50', color: '#5ec26a', pos: 'above' },
+  { date: new Date('2026-05-20'), amount: 21459.50, project: 'AIC50', color: '#5ec26a', pos: 'below' },
+];
+
+const minDate = new Date('2026-02-19');
+const maxDate = new Date('2026-05-27');
+const totalMs = maxDate - minDate;
+
+const maxAmount = Math.max(...payments.map(p => p.amount));
+const minSize = 44;
+const maxSize = 100;
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function dateToPercent(d) { return ((d - minDate) / totalMs) * 100; }
+function sizeForAmount(a) { return lerp(minSize, maxSize, a / maxAmount); }
+function fmt(n) {
+  return n.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €';
+}
+
+function build() {
+  const axis = document.getElementById('axis');
+
+  payments.forEach(p => {
+    const pct = dateToPercent(p.date);
+    const size = sizeForAmount(p.amount);
+    const stemH = 40 + Math.random() * 10 | 0; // slight variation
+
+    const el = document.createElement('div');
+    el.className = `payment ${p.pos}`;
+    el.style.left = pct + '%';
+
+    const dateStr = p.date.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit' });
+
+    const fontSize = size < 55 ? 8 : size < 75 ? 9 : 10;
+
+    el.innerHTML = `
+      <div class="payment-meta">
+        <span class="payment-date">${dateStr}</span>
+        <span class="payment-project" style="color:${p.color}">${p.project}</span>
+      </div>
+      <div class="payment-stem" style="height:${stemH}px"></div>
+      <div class="payment-circle" style="width:${size}px;height:${size}px;background:${p.color}">
+        <span class="amount-label" style="font-size:${fontSize}px">${fmt(p.amount)}</span>
+      </div>
+    `;
+
+    axis.appendChild(el);
+  });
+
+  // cumulative chart
+  const chart = document.getElementById('cumChart');
+  const total = payments.reduce((s, p) => s + p.amount, 0);
+  let cum = 0;
+
+  payments.forEach(p => {
+    cum += p.amount;
+    const pct = dateToPercent(p.date);
+
+    const m = document.createElement('div');
+    m.className = 'cum-marker';
+    m.style.left = pct + '%';
+
+    m.innerHTML = `
+      <div class="cum-dot" style="background:${p.color}"></div>
+      <div class="cum-value">${fmt(cum)}</div>
+    `;
+    chart.appendChild(m);
+  });
+
+  // animate fill bar
+  setTimeout(() => {
+    document.getElementById('cumFill').style.width =
+      dateToPercent(payments[payments.length - 1].date) + '%';
+  }, 300);
+}
+
+build();
+</script>
+</body>
+</html>
