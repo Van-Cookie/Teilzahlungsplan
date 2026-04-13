@@ -5,424 +5,869 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Teilzahlungsplan</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;800&display=swap');
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --bg: #0f0f11;
-    --surface: #17171a;
-    --border: #2a2a30;
-    --text: #e8e8ec;
-    --muted: #6b6b78;
-    --aps3: #f0c060;
-    --aic50: #5ec26a;
-    --ub55: #9b9ba8;
-    --aicher: #e07060;
-    --accent: #f0c060;
-  }
+:root {
+  --bg:      #0c0c0e;
+  --surface: #141416;
+  --card:    #1a1a1d;
+  --border:  #252528;
+  --text:    #e2e2e8;
+  --muted:   #5a5a65;
+  --subtle:  #2e2e34;
+  --aps3:    #e8b84b;
+  --aic50:   #4ec97a;
+  --ub55:    #8888a0;
+  --paid:    #3a3a42;
+  --paid-txt:#5a5a65;
+}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    min-height: 100vh;
-    padding: 48px 40px;
-  }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  min-height: 100vh;
+  padding: 0;
+}
 
-  header {
-    margin-bottom: 56px;
-  }
+/* ── NOISE TEXTURE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
 
-  header h1 {
-    font-size: clamp(22px, 4vw, 36px);
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 1;
-  }
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 52px 40px 80px;
+}
 
-  header p {
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 8px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
+/* ── HEADER ── */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 52px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 28px;
+}
 
-  .legend {
-    display: flex;
-    gap: 24px;
-    margin-bottom: 48px;
-    flex-wrap: wrap;
-  }
+h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(28px, 5vw, 46px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
 
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
+.header-meta {
+  text-align: right;
+}
 
-  .legend-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
+.header-meta .date {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
 
-  /* ── TIMELINE ── */
-  .timeline-wrap {
-    position: relative;
-    padding-bottom: 48px;
-  }
+.header-meta .total-badge {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  margin-top: 4px;
+}
 
-  .timeline-axis {
-    position: relative;
-    height: 2px;
-    background: var(--border);
-    margin: 140px 0 120px;
-  }
+/* ── LEGEND ── */
+.legend {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  align-items: center;
+}
 
-  .axis-line {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(90deg, transparent, var(--border) 5%, var(--border) 95%, transparent);
-  }
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 
-  .payment {
-    position: absolute;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: default;
-  }
+.legend-pip {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 
-  .payment.above {
-    bottom: 2px; /* sits on top of axis */
-    flex-direction: column-reverse;
-    align-items: center;
-  }
+.legend-sep { flex: 1; }
 
-  .payment.below {
-    top: 2px;
-    flex-direction: column;
-    align-items: center;
-  }
+.legend-hint {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  font-style: italic;
+}
 
-  .payment-circle {
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'DM Mono', monospace;
-    font-weight: 500;
-    color: #0f0f11;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    position: relative;
-    flex-shrink: 0;
-  }
+/* ── SECTION LABEL ── */
+.section-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
 
-  .payment-circle:hover {
-    transform: scale(1.08);
-    box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
-  }
+/* ── TIMELINE ── */
+.timeline-section { margin-bottom: 64px; }
 
-  .payment-circle .amount-label {
-    font-size: 10px;
-    font-weight: 500;
-    text-align: center;
-    line-height: 1.2;
-    pointer-events: none;
-  }
+.timeline-outer {
+  position: relative;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
 
-  .payment-stem {
-    width: 1px;
-    background: var(--border);
-    flex-shrink: 0;
-  }
+.timeline-inner {
+  position: relative;
+  min-width: 700px;
+  height: 280px;
+}
 
-  .payment-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-  }
+.tl-axis {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--border);
+  transform: translateY(-50%);
+}
 
-  .payment-date {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-  }
+.tl-axis-label {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, 14px);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
 
-  .payment-project {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
+.tl-tick {
+  position: absolute;
+  top: 50%;
+  width: 1px;
+  height: 8px;
+  background: var(--border);
+  transform: translate(-50%, -50%);
+}
 
-  /* ── CUMULATIVE BAR ── */
-  .cumulative-section {
-    margin-top: 64px;
-    border-top: 1px solid var(--border);
-    padding-top: 40px;
-  }
+.payment-node {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: default;
+}
 
-  .section-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-bottom: 24px;
-  }
+.payment-node.above {
+  flex-direction: column-reverse;
+  bottom: calc(50% + 1px);
+}
 
-  .cum-chart {
-    position: relative;
-    height: 80px;
-  }
+.payment-node.below {
+  flex-direction: column;
+  top: calc(50% + 1px);
+}
 
-  .cum-bar-bg {
-    position: absolute;
-    top: 50%; transform: translateY(-50%);
-    left: 0; right: 0;
-    height: 6px;
-    background: var(--border);
-    border-radius: 3px;
-  }
+.node-stem {
+  width: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+}
 
-  .cum-bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    background: linear-gradient(90deg, var(--aps3), var(--aic50));
-    width: 0%;
-    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
+.node-circle {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.18s ease, filter 0.18s ease;
+  position: relative;
+}
 
-  .cum-marker {
-    position: absolute;
-    top: 50%; transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0;
-  }
+.node-circle:hover {
+  transform: scale(1.1);
+  filter: brightness(1.15);
+}
 
-  .cum-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    border: 2px solid var(--bg);
-    position: relative;
-    z-index: 2;
-  }
+.node-circle.paid {
+  background: var(--paid) !important;
+  box-shadow: none !important;
+}
 
-  .cum-value {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    color: var(--muted);
-    white-space: nowrap;
-    margin-top: 14px;
-  }
+.node-circle .node-amount {
+  font-size: 9px;
+  font-weight: 500;
+  color: #0c0c0e;
+  text-align: center;
+  line-height: 1.2;
+  pointer-events: none;
+  padding: 2px;
+}
 
-  /* ── SUMMARY CARDS ── */
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-top: 56px;
-  }
+.node-circle.paid .node-amount {
+  color: var(--paid-txt);
+}
 
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px 24px;
-    position: relative;
-    overflow: hidden;
-  }
+.node-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
 
-  .card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-  }
+.node-date {
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
 
-  .card.aps3::before { background: var(--aps3); }
-  .card.aic50::before { background: var(--aic50); }
-  .card.ub55::before { background: var(--ub55); }
-  .card.aicher::before { background: var(--aicher); }
-  .card.total::before { background: linear-gradient(90deg, var(--aps3), var(--aic50)); }
+.node-project {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 
-  .card-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
+.node-circle.paid + .node-meta .node-project,
+.node-meta + .node-stem + .node-circle.paid ~ * { color: var(--muted); }
 
-  .card-amount {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 1;
-  }
+/* paid label color */
+.payment-node.paid-node .node-project { color: var(--muted) !important; }
 
-  .card-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--muted);
-    margin-top: 6px;
-  }
+/* ── CUMULATIVE BAR ── */
+.cum-section { margin-bottom: 64px; }
+
+.cum-track {
+  position: relative;
+  height: 64px;
+}
+
+.cum-bg {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%; transform: translateY(-50%);
+  height: 4px;
+  background: var(--subtle);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.cum-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--aps3), var(--aic50));
+  width: 0;
+  transition: width 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cum-dot-group {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.cum-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg);
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.cum-val {
+  font-size: 8px;
+  color: var(--muted);
+  white-space: nowrap;
+  margin-top: 12px;
+}
+
+/* ── CARDS ── */
+.cards-section { margin-bottom: 64px; }
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: 10px 10px 0 0;
+}
+
+.card-label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.card-amount {
+  font-family: 'Syne', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.card-sub {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.card-progress {
+  margin-top: 12px;
+  height: 2px;
+  background: var(--subtle);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.card-progress-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── UPCOMING TABLE ── */
+.upcoming-section {}
+
+.upcoming-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.upcoming-table th {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  padding: 0 12px 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+
+.upcoming-table td {
+  padding: 11px 12px 11px 0;
+  font-size: 11px;
+  border-bottom: 1px solid var(--subtle);
+  vertical-align: middle;
+}
+
+.upcoming-table tr:last-child td { border-bottom: none; }
+
+.upcoming-table tr.paid-row td { color: var(--muted); text-decoration: line-through; }
+.upcoming-table tr.paid-row .pip { opacity: 0.3; }
+
+.upcoming-table .pip {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.upcoming-table .amount-cell {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.upcoming-table .days-badge {
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: var(--subtle);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.upcoming-table .days-badge.urgent {
+  background: rgba(232, 184, 75, 0.15);
+  color: var(--aps3);
+}
+
+.upcoming-table .days-badge.overdue {
+  background: rgba(220, 80, 80, 0.15);
+  color: #dc6060;
+}
+
+.upcoming-table .days-badge.paid-badge {
+  background: var(--subtle);
+  color: var(--muted);
+}
+
+/* ── TODAY LINE ── */
+.today-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: rgba(232, 184, 75, 0.4);
+  pointer-events: none;
+}
+
+.today-label {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: var(--aps3);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  opacity: 0.7;
+}
 </style>
 </head>
 <body>
+<div class="page">
 
-<header>
-  <h1>Teilzahlungsplan</h1>
-  <p>Lineare Kalenderdarstellung · Fälligkeiten Feb – Jul 2026</p>
-</header>
+  <header>
+    <div>
+      <h1>Teilzahlungen</h1>
+    </div>
+    <div class="header-meta">
+      <div class="date" id="headerDate"></div>
+      <div class="total-badge" id="headerTotal"></div>
+    </div>
+  </header>
 
-<div class="legend">
-  <div class="legend-item"><div class="legend-dot" style="background:var(--aps3)"></div>APS3</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--aic50)"></div>AIC50</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--ub55)"></div>UB55</div>
-  <div class="legend-item" style="margin-left:auto">
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">Kreisgrößen = Betrag (skaliert)</span>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-pip" style="background:var(--aps3)"></div>APS3</div>
+    <div class="legend-item"><div class="legend-pip" style="background:var(--aic50)"></div>AIC50</div>
+    <div class="legend-item"><div class="legend-pip" style="background:var(--ub55)"></div>UB55</div>
+    <div class="legend-item"><div class="legend-pip" style="background:var(--paid);border:1px solid var(--border)"></div>Eingegangen</div>
+    <div class="legend-sep"></div>
+    <div class="legend-hint">Kreisgrößen skaliert nach Betrag · Daten = Fälligkeiten</div>
   </div>
-</div>
 
-<div class="timeline-wrap">
-  <div class="timeline-axis" id="axis">
-    <div class="axis-line"></div>
+  <div class="timeline-section">
+    <div class="section-label">Zeitlicher Verlauf</div>
+    <div class="timeline-outer">
+      <div class="timeline-inner" id="timeline"></div>
+    </div>
   </div>
-</div>
 
-<div class="cumulative-section">
-  <div class="section-label">Kumulierter Zufluss</div>
-  <div class="cum-chart" id="cumChart">
-    <div class="cum-bar-bg"><div class="cum-bar-fill" id="cumFill"></div></div>
+  <div class="cum-section">
+    <div class="section-label">Kumulierter Zufluss (ausstehend)</div>
+    <div class="cum-track" id="cumTrack">
+      <div class="cum-bg"><div class="cum-fill" id="cumFill"></div></div>
+    </div>
   </div>
-</div>
 
-<div class="cards">
-  <div class="card aps3">
-    <div class="card-label">APS3</div>
-    <div class="card-amount" style="color:var(--aps3)">35.779 €</div>
-    <div class="card-sub">3 Zahlungen · Mär – Apr</div>
+  <div class="cards-section">
+    <div class="section-label">Projektübersicht</div>
+    <div class="cards-grid" id="cardsGrid"></div>
   </div>
-  <div class="card aic50">
-    <div class="card-label">AIC50</div>
-    <div class="card-amount" style="color:var(--aic50)">77.209 €</div>
-    <div class="card-sub">4 Zahlungen · Feb – Mai</div>
+
+  <div class="upcoming-section">
+    <div class="section-label">Alle Zahlungen</div>
+    <table class="upcoming-table">
+      <thead>
+        <tr>
+          <th>Projekt</th>
+          <th>Fälligkeit</th>
+          <th>Status</th>
+          <th style="text-align:right">Betrag</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
   </div>
-  <div class="card ub55">
-    <div class="card-label">UB55</div>
-    <div class="card-amount" style="color:var(--ub55)">22.057 €</div>
-    <div class="card-sub">1 Zahlung · Mär (Teilbetrag)</div>
-  </div>
-  <div class="card total">
-    <div class="card-label">Gesamt ausstehend</div>
-    <div class="card-amount">135.046 €</div>
-    <div class="card-sub">8 Termine · Feb – Jul 2026</div>
-  </div>
+
 </div>
 
 <script>
-const payments = [
-  { date: new Date('2026-02-26'), amount: 25749.95, project: 'AIC50', color: '#5ec26a', pos: 'below' },
-  { date: new Date('2026-03-05'), amount: 10000,    project: 'APS3',  color: '#f0c060', pos: 'above' },
-  { date: new Date('2026-04-14'), amount: 22057.25, project: 'UB55',  color: '#9b9ba8', pos: 'above' },
-  { date: new Date('2026-03-19'), amount: 10000,    project: 'APS3',  color: '#f0c060', pos: 'below' },
-  { date: new Date('2026-04-16'), amount: 15779.52, project: 'APS3',  color: '#f0c060', pos: 'above' },
-  { date: new Date('2026-04-23'), amount: 10000,    project: 'AIC50', color: '#5ec26a', pos: 'below' },
-  { date: new Date('2026-06-18'), amount: 20000,    project: 'AIC50', color: '#5ec26a', pos: 'above' },
-  { date: new Date('2026-07-23'), amount: 21459.50, project: 'AIC50', color: '#5ec26a', pos: 'below' },
+// ═══════════════════════════════════════════════════════
+// DATENBASIS — hier werden alle Zahlungen gepflegt
+// Rechnungsdatum + paymentDays = Fälligkeit
+// paid: true = bereits eingegangen
+// ═══════════════════════════════════════════════════════
+
+const PROJECTS = {
+  APS3:  { label: 'APS3',  color: '#e8b84b', paymentDays: 7  },
+  AIC50: { label: 'AIC50', color: '#4ec97a', paymentDays: 7  },
+  UB55:  { label: 'UB55',  color: '#8888a0', paymentDays: 14 },
+};
+
+// Rechnungsdaten (invoice dates) aus Notion + bezahlt-Status
+const RAW_PAYMENTS = [
+  // APS3
+  { project: 'APS3',  invoiceDate: '2026-02-26', amount: 10000,     paid: true  },
+  { project: 'APS3',  invoiceDate: '2026-03-12', amount: 10000,     paid: true  },
+  { project: 'APS3',  invoiceDate: '2026-04-13', amount: 10000,     paid: false },
+  { project: 'APS3',  invoiceDate: '2026-04-30', amount: 5779.52,   paid: false },
+
+  // AIC50
+  { project: 'AIC50', invoiceDate: '2026-02-12', amount: 2525,      paid: true  },
+  { project: 'AIC50', invoiceDate: '2026-02-12', amount: 23224.95,  paid: true  },
+  { project: 'AIC50', invoiceDate: '2026-05-07', amount: 10000,     paid: false },
+  { project: 'AIC50', invoiceDate: '2026-05-28', amount: 10000,     paid: false },
+  { project: 'AIC50', invoiceDate: '2026-06-18', amount: 10000,     paid: false },
+  { project: 'AIC50', invoiceDate: '2026-07-09', amount: 10000,     paid: false },
+  { project: 'AIC50', invoiceDate: '2026-07-16', amount: 11459.50,  paid: false },
+
+  // UB55
+  { project: 'UB55',  invoiceDate: '2026-04-13', amount: 18729.11,  paid: false },
+  { project: 'UB55',  invoiceDate: '2026-05-27', amount: 43701.27,  paid: false },
+  { project: 'UB55',  invoiceDate: '2026-06-17', amount: 3110.72,   paid: false },
 ];
 
-const minDate = new Date('2026-02-19');
-const maxDate = new Date('2026-08-31');
-const totalMs = maxDate - minDate;
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
 
-const maxAmount = Math.max(...payments.map(p => p.amount));
-const minSize = 44;
-const maxSize = 100;
-
-function lerp(a, b, t) { return a + (b - a) * t; }
-function dateToPercent(d) { return ((d - minDate) / totalMs) * 100; }
-function sizeForAmount(a) { return lerp(minSize, maxSize, a / maxAmount); }
-function fmt(n) {
-  return n.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €';
+function addDays(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d;
 }
 
-function build() {
-  const axis = document.getElementById('axis');
+function fmtDate(d) {
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
 
-  payments.forEach(p => {
-    const pct = dateToPercent(p.date);
-    const size = sizeForAmount(p.amount);
-    const stemH = 40 + Math.random() * 10 | 0; // slight variation
+function fmtEur(n, decimals = 0) {
+  return n.toLocaleString('de-DE', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }) + ' €';
+}
 
-    const el = document.createElement('div');
-    el.className = `payment ${p.pos}`;
-    el.style.left = pct + '%';
+function daysDiff(d) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((d - today) / 86400000);
+}
 
-    const dateStr = p.date.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit' });
+// Build resolved payments (add dueDate)
+const PAYMENTS = RAW_PAYMENTS.map(p => ({
+  ...p,
+  dueDate: addDays(p.invoiceDate, PROJECTS[p.project].paymentDays),
+})).sort((a, b) => a.dueDate - b.dueDate);
 
-    const fontSize = size < 55 ? 8 : size < 75 ? 9 : 10;
+const today = new Date(); today.setHours(0,0,0,0);
 
-    el.innerHTML = `
-      <div class="payment-meta">
-        <span class="payment-date">${dateStr}</span>
-        <span class="payment-project" style="color:${p.color}">${p.project}</span>
-      </div>
-      <div class="payment-stem" style="height:${stemH}px"></div>
-      <div class="payment-circle" style="width:${size}px;height:${size}px;background:${p.color}">
-        <span class="amount-label" style="font-size:${fontSize}px">${fmt(p.amount)}</span>
-      </div>
+// ═══════════════════════════════════════════════════════
+// HEADER
+// ═══════════════════════════════════════════════════════
+function buildHeader() {
+  document.getElementById('headerDate').textContent =
+    'Stand ' + today.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+
+  const outstanding = PAYMENTS.filter(p => !p.paid).reduce((s,p) => s + p.amount, 0);
+  document.getElementById('headerTotal').textContent = fmtEur(outstanding) + ' ausstehend';
+}
+
+// ═══════════════════════════════════════════════════════
+// TIMELINE
+// ═══════════════════════════════════════════════════════
+function buildTimeline() {
+  const container = document.getElementById('timeline');
+  container.innerHTML = '';
+
+  const dates = PAYMENTS.map(p => p.dueDate);
+  const minD = new Date(Math.min(...dates, today) - 14 * 86400000);
+  const maxD = new Date(Math.max(...dates) + 14 * 86400000);
+  const span = maxD - minD;
+
+  function toPct(d) { return ((d - minD) / span) * 100; }
+
+  // axis
+  const axis = document.createElement('div');
+  axis.className = 'tl-axis';
+  container.appendChild(axis);
+
+  // month ticks
+  const cur = new Date(minD.getFullYear(), minD.getMonth(), 1);
+  while (cur <= maxD) {
+    const pct = toPct(cur);
+    if (pct >= 0 && pct <= 100) {
+      const tick = document.createElement('div');
+      tick.className = 'tl-tick';
+      tick.style.left = pct + '%';
+      container.appendChild(tick);
+
+      const lbl = document.createElement('div');
+      lbl.className = 'tl-axis-label';
+      lbl.style.left = pct + '%';
+      lbl.textContent = cur.toLocaleDateString('de-DE', { month: 'short', year: '2-digit' });
+      container.appendChild(lbl);
+    }
+    cur.setMonth(cur.getMonth() + 1);
+  }
+
+  // today line
+  const todayPct = toPct(today);
+  if (todayPct >= 0 && todayPct <= 100) {
+    const todayLine = document.createElement('div');
+    todayLine.className = 'today-line';
+    todayLine.style.left = todayPct + '%';
+    container.appendChild(todayLine);
+    const todayLbl = document.createElement('div');
+    todayLbl.className = 'today-label';
+    todayLbl.style.left = todayPct + '%';
+    todayLbl.style.top = '4px';
+    todayLbl.textContent = 'Heute';
+    container.appendChild(todayLbl);
+  }
+
+  const maxAmt = Math.max(...PAYMENTS.map(p => p.amount));
+  const minSize = 38, maxSize = 88;
+  function nodeSize(amt) { return minSize + (amt / maxAmt) * (maxSize - minSize); }
+
+  // place nodes, alternate above/below; track positions for overlap avoidance
+  PAYMENTS.forEach((p, i) => {
+    const pct = toPct(p.dueDate);
+    const size = nodeSize(p.amount);
+    const proj = PROJECTS[p.project];
+    const isAbove = i % 2 === 0;
+    const stemH = 28 + (i % 3) * 8;
+
+    const node = document.createElement('div');
+    node.className = 'payment-node' + (p.paid ? ' paid-node' : '') + (isAbove ? ' above' : ' below');
+    node.style.left = pct + '%';
+
+    const meta = document.createElement('div');
+    meta.className = 'node-meta';
+    meta.innerHTML = `
+      <span class="node-date">${fmtDate(p.dueDate)}</span>
+      <span class="node-project" style="color:${p.paid ? 'var(--muted)' : proj.color}">${proj.label}</span>
     `;
 
-    axis.appendChild(el);
-  });
+    const stem = document.createElement('div');
+    stem.className = 'node-stem';
+    stem.style.height = stemH + 'px';
 
-  // cumulative chart
-  const chart = document.getElementById('cumChart');
-  const total = payments.reduce((s, p) => s + p.amount, 0);
+    const circle = document.createElement('div');
+    circle.className = 'node-circle' + (p.paid ? ' paid' : '');
+    circle.style.width = size + 'px';
+    circle.style.height = size + 'px';
+    if (!p.paid) {
+      circle.style.background = proj.color;
+      circle.style.boxShadow = `0 0 ${size * 0.4}px ${proj.color}30`;
+    }
+
+    const fontSize = size < 48 ? 8 : size < 65 ? 9 : 10;
+    circle.innerHTML = `<span class="node-amount" style="font-size:${fontSize}px">${fmtEur(p.amount)}</span>`;
+
+    if (isAbove) {
+      node.appendChild(meta);
+      node.appendChild(stem);
+      node.appendChild(circle);
+    } else {
+      node.appendChild(circle);
+      node.appendChild(stem);
+      node.appendChild(meta);
+    }
+
+    container.appendChild(node);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// CUMULATIVE CHART
+// ═══════════════════════════════════════════════════════
+function buildCumulative() {
+  const track = document.getElementById('cumTrack');
+  // remove old dots
+  track.querySelectorAll('.cum-dot-group').forEach(e => e.remove());
+
+  const pending = PAYMENTS.filter(p => !p.paid).sort((a,b) => a.dueDate - b.dueDate);
+  if (!pending.length) return;
+
+  const dates = pending.map(p => p.dueDate);
+  const minD = new Date(Math.min(...dates) - 7 * 86400000);
+  const maxD = new Date(Math.max(...dates) + 7 * 86400000);
+  const span = maxD - minD;
+  function toPct(d) { return ((d - minD) / span) * 100; }
+
+  const total = pending.reduce((s,p) => s + p.amount, 0);
   let cum = 0;
 
-  payments.forEach(p => {
+  pending.forEach(p => {
     cum += p.amount;
-    const pct = dateToPercent(p.date);
+    const pct = toPct(p.dueDate);
+    const proj = PROJECTS[p.project];
 
-    const m = document.createElement('div');
-    m.className = 'cum-marker';
-    m.style.left = pct + '%';
+    const group = document.createElement('div');
+    group.className = 'cum-dot-group';
+    group.style.left = pct + '%';
 
-    m.innerHTML = `
-      <div class="cum-dot" style="background:${p.color}"></div>
-      <div class="cum-value">${fmt(cum)}</div>
+    group.innerHTML = `
+      <div class="cum-dot" style="background:${proj.color}"></div>
+      <div class="cum-val">${fmtEur(cum)}</div>
     `;
-    chart.appendChild(m);
+    track.appendChild(group);
   });
 
-  // animate fill bar
+  const lastPct = toPct(pending[pending.length - 1].dueDate);
   setTimeout(() => {
-    document.getElementById('cumFill').style.width =
-      dateToPercent(payments[payments.length - 1].date) + '%';
-  }, 300);
+    document.getElementById('cumFill').style.width = lastPct + '%';
+  }, 400);
 }
 
-build();
+// ═══════════════════════════════════════════════════════
+// CARDS
+// ═══════════════════════════════════════════════════════
+function buildCards() {
+  const grid = document.getElementById('cardsGrid');
+  grid.innerHTML = '';
+
+  const projectKeys = Object.keys(PROJECTS);
+  const totalAll = PAYMENTS.reduce((s,p) => s + p.amount, 0);
+  const totalPaid = PAYMENTS.filter(p => p.paid).reduce((s,p) => s + p.amount, 0);
+  const totalPending = totalAll - totalPaid;
+
+  projectKeys.forEach(key => {
+    const proj = PROJECTS[key];
+    const payments = PAYMENTS.filter(p => p.project === key);
+    const total = payments.reduce((s,p) => s + p.amount, 0);
+    const paid = payments.filter(p => p.paid).reduce((s,p) => s + p.amount, 0);
+    const pending = total - paid;
+    const paidPct = total > 0 ? (paid / total * 100) : 0;
+    const count = payments.filter(p => !p.paid).length;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.setProperty('--c', proj.color);
+    card.innerHTML = `
+      <style>.card[data-proj="${key}"]::after { background: var(--c); }</style>
+      <div class="card-label">${proj.label}</div>
+      <div class="card-amount" style="color:${proj.color}">${fmtEur(pending)}</div>
+      <div class="card-sub">
+        ausstehend · ${count} Zahlung${count !== 1 ? 'en' : ''}<br>
+        ${fmtEur(paid)} bereits eingegangen
+      </div>
+      <div class="card-progress">
+        <div class="card-progress-fill" style="width:0%;background:${proj.color}" data-width="${paidPct}"></div>
+      </div>
+    `;
+    card.setAttribute('data-proj', key);
+    grid.appendChild(card);
+  });
+
+  // total card
+  const totalCard = document.createElement('div');
+  totalCard.className = 'card';
+  totalCard.innerHTML = `
+    <div class="card-label">Gesamt ausstehend</div>
+    <div class="card-amount" style="color:var(--text)">${fmtEur(totalPending)}</div>
+    <div class="card-sub">
+      ${PAYMENTS.filter(p => !p.paid).length} offene Zahlungen<br>
+      ${fmtEur(totalPaid)} bereits eingegangen
+    </div>
+    <div class="card-progress">
+      <div class="card-progress-fill" style="width:0%;background:linear-gradient(90deg,var(--aps3),var(--aic50))" data-width="${totalAll > 0 ? totalPaid/totalAll*100 : 0}"></div>
+    </div>
+  `;
+  totalCard.style.cssText += 'border-color: var(--subtle);';
+  grid.appendChild(totalCard);
+
+  // animate progress bars
+  setTimeout(() => {
+    grid.querySelectorAll('.card-progress-fill').forEach(el => {
+      el.style.width = el.dataset.width + '%';
+    });
+  }, 500);
+}
+
+// ═══════════════════════════════════════════════════════
+// TABLE
+// ═══════════════════════════════════════════════════════
+function buildTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  PAYMENTS.forEach(p => {
+    const proj = PROJECTS[p.project];
+    const diff = daysDiff(p.dueDate);
+    const tr = document.createElement('tr');
+    if (p.paid) tr.classList.add('paid-row');
+
+    let badge, badgeClass;
+    if (p.paid) {
+      badge = 'Eingegangen';
+      badgeClass = 'paid-badge';
+    } else if (diff < 0) {
+      badge = `${Math.abs(diff)}T überfällig`;
+      badgeClass = 'overdue';
+    } else if (diff <= 7) {
+      badge = `in ${diff}T`;
+      badgeClass = 'urgent';
+    } else {
+      badge = `in ${diff}T`;
+      badgeClass = '';
+    }
+
+    tr.innerHTML = `
+      <td>
+        <span class="pip" style="background:${proj.color}"></span>
+        ${proj.label}
+      </td>
+      <td>${fmtDate(p.dueDate)}</td>
+      <td><span class="days-badge ${badgeClass}">${badge}</span></td>
+      <td class="amount-cell" style="color:${p.paid ? 'var(--muted)' : proj.color}">${fmtEur(p.amount, 2)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+buildHeader();
+buildTimeline();
+buildCumulative();
+buildCards();
+buildTable();
 </script>
 </body>
 </html>
